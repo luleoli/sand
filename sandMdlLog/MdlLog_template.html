@@ -1,0 +1,339 @@
+!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <script src="https://cdn.jsdelivr.net/npm/vega@5"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vega-lite@5.20.1"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vega-embed@6"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ title }}</title>
+  <style>
+    :root {
+      --primary-color: #90a7bd8c;
+      --secondary-color: #788288;
+      --accent-color: #36393b;
+      --text-title-color: #333131;
+      --text-color: #363333;
+      --bg-color: #f8f9f9;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      font-family: 'Segoe UI', sans-serif;
+    }
+
+    body {
+      min-height: 100vh;
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      grid-template-areas:
+        "header"
+        "main"
+        "footer";
+    }
+
+    header {
+      grid-area: header;
+      background-color: var(--primary-color);
+      color: var(--text-title-color);
+      padding: 1rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    main {
+      grid-area: main;
+      padding: 2rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    footer {
+      grid-area: footer;
+      background-color: var(--primary-color);
+      color: var(--text-title-color);
+      padding: 1rem;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    table {
+      margin-bottom: 1rem;
+      margin-top: 1rem;
+      margin-left: 5px;
+      margin-right: 5px;
+      border-collapse: collapse;
+      min-width: 200px;
+      max-width: 300px;
+      width: 100%;
+      font-size: 14px;
+    }
+
+    th,
+    td {
+      padding: 0.4rem;
+      text-align: left;
+    }
+
+    thead {
+      background-color: var(--primary-color);
+      color: var(--text-color);
+    }
+
+    tbody tr:nth-child(even) {
+      background-color: var(--bg-color);
+    }
+
+    tbody tr:nth-child(odd) {
+      background-color: #ffffff;
+    }
+
+    .container {
+      margin: 0 auto;
+      padding: 0 1rem;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      margin-top: 1rem;
+      margin-bottom: 1rem;
+      display: flex;
+      justify-content: space-evenly;
+      align-items: left;
+    }
+
+    .container-vertical {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      gap: 1rem;
+    }
+    
+
+    .container-quintil {
+      display: grid;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      gap: 1rem;
+    }
+
+
+    p {
+      margin-bottom: 1rem;
+      margin-top: 1rem;
+    }
+
+
+    .card {
+      background-color: var(--bg-color);
+      border: 1px solid var(--primary-color);
+      border-radius: 8px;
+      padding: 1rem;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      margin-top: 1rem;
+      margin-bottom: 1rem;
+    }
+
+
+    .txt-hg-blue {
+      font-weight:700; 
+      color:#1f4e79;
+    }
+
+    .txt-hg-bold {
+      font-weight:600;
+    }
+
+  </style>
+</head>
+
+<body>
+  <header>
+    <h2>Model Results: {{ title }}</h2>
+  </header>
+  <button id="scrollToTopBtn"
+    style="display: none; position: fixed; bottom: 20px; right: 20px; z-index: 99; font-size: 18px; border: none; outline: none; background-color: var(--primary-color); color: white; cursor: pointer; padding: 15px; border-radius: 4px;">Top</button>
+  <script>
+    const scrollToTopBtn = document.getElementById("scrollToTopBtn");
+
+    window.onscroll = function () {
+      if (document.body.scrollTop > 20 || document.documentElement.scrollTop > 20) {
+        scrollToTopBtn.style.display = "block";
+      } else {
+        scrollToTopBtn.style.display = "none";
+      }
+    };
+
+    scrollToTopBtn.addEventListener("click", function () {
+      document.body.scrollTop = 0;
+      document.documentElement.scrollTop = 0;
+    });
+  </script>
+  <main>
+    <section>
+
+      <h2>Description</h2>
+
+          <div class="card">
+            {{ description_general }}
+
+            <div style="margin-top:12px; width:100%;">
+              <div style="background:#fff7c2; border:1px solid #f0e68c; padding:8px 12px; border-radius:6px; color:#7a5a00; font-weight:600;">
+                {{ description_specific }}
+              </div>
+            </div>
+          </div>
+
+
+      <h2>Version</h2>
+
+      <div class="card">
+
+          <div style="display:flex; flex-direction:column; gap:8px; width:100%;">
+            
+            <div style="display:grid; grid-template-columns:110px 1fr; gap:6px 12px; align-items:center;">
+              <div class="txt-hg-blue">Database:</div>
+              <div>{{ tbl_version }}</div>
+
+              <div class="txt-hg-blue">Inference:</div>
+              <div>{{ inf_version }}</div>
+              
+              <div class="txt-hg-blue">Modeling:</div>
+              <div>{{ mdl_version }}</div>
+            </div>
+          </div>
+      </div>  
+
+      <h2>Gini</h2>
+      General
+      <div class="container">
+
+
+        <div class=".container-vertical">
+        <h4 style="text-align:center; width:100%;">Observed</h4>
+
+          <div id="gini_obs_graph" style="padding:8px;"></div>
+          <script>
+            const gini_obs_graph = {{ gini_obs_graph_json | safe }};
+            const embedOpt_gini_obs_graph = { "actions": false };
+            vegaEmbed('#gini_obs_graph', gini_obs_graph, embedOpt_gini_obs_graph).catch(console.error);
+          </script>
+
+        </div>
+
+
+        <div class=".container-vertical">
+
+        <h4 style="text-align:center; width:100%;">Observed + Infered</h4>
+            
+          <div id="gini_obs_inf_graph" style="padding:8px;"></div>
+          <script>
+            const gini_obs_inf_graph = {{ gini_obs_inf_graph_json | safe }};
+            const embedOpt_gini_obs_inf_graph = { "actions": false };
+            vegaEmbed('#gini_obs_inf_graph', gini_obs_inf_graph, embedOpt_gini_obs_inf_graph).catch(console.error);
+          </script>
+        </div>
+        
+
+
+        <div class=".container-vertical">
+
+        <h4 style="text-align:center; width:100%;">No Action</h4>
+            <div id="gini_no_action_graph" style="padding:8px;"></div>
+            <script>
+              const gini_no_action_graph = {{ gini_no_action_graph_json | safe }};
+              const embedOpt_gini_no_action_graph = { "actions": false };
+              vegaEmbed('#gini_no_action_graph', gini_no_action_graph, embedOpt_gini_no_action_graph).catch(console.error);
+            </script>
+        </div>
+
+
+
+        <div class=".container-vertical">
+
+        <h4 style="text-align:center; width:100%;">Overview</h4>
+
+          <div class="card" style="margin: 1rem 0; padding: 0.5rem 0.5rem; align-items: center;">
+          <p>Train: <b>{{ gini_train }}</b></p>
+          <p>Test: <b>{{ gini_test }}</b></p>
+          <p>OOT: <b>{{ gini_oot }}</b></p>
+          <p>No Action: <b>{{ gini_noaction }}</b></p>
+          </div>
+
+        </div>
+
+      </div>
+
+      Segmented
+
+      <div class="container">
+        <div class=".container-vertical">
+
+            Tabela de gini segmented
+        </div>
+      </div>
+
+      <h2>Over - Matrix Decils</h2>
+
+      Volumn
+      <div class="container">
+
+        <div class=".container-vertical">
+        <h4> Observed + Inferred </h4>
+            Matrix cruzada decils target vs model observed + inferred
+        </div>
+
+
+        <div class=".container-vertical">
+
+        <h4> No Action </h4>
+            Matrix cruzada decils target vs model no action
+        </div>
+
+        
+      </div>
+      Over Fisico
+      <div class="container">
+
+        <div class=".container-vertical">
+        <h4> Observed + Inferred </h4>
+            Matrix cruzada decils target vs model observed + inferred
+        </div>
+
+
+        <div class=".container-vertical">
+
+        <h4> No Action </h4>
+            Matrix cruzada decils target vs model no action
+        </div>
+
+        
+      </div>
+
+
+      <h2>Target: Over Fisico > {{ tgt_neg_criteria }} %</h2>
+
+      <div class="container">
+            Tabela de gini segmented
+      </div>
+
+     
+      <h2>Target: Over Fisico < {{ ntgt_aprv_criteria }} %</h2>
+
+      <div class="container">
+            Tabela de gini segmented
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <p>&copy; 2025 Model Analysis with Sandy. All rights reserved.</p>
+  </footer>
+
+</body>
+
+</html>
