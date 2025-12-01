@@ -95,14 +95,22 @@
     }
 
     .container {
-      margin: 0 auto;
+      margin: auto;
       padding: 0 1rem;
-      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+      box-shadow: 1px 2px 4px rgba(0, 0, 0, 0.1);
       margin-top: 1rem;
       margin-bottom: 1rem;
       display: flex;
       justify-content: space-evenly;
       align-items: left;
+    }
+
+    .container-no-display {
+      margin: auto;
+      padding: 0 1rem;
+      box-shadow: 1px 2px 4px rgba(0, 0, 0, 0.1);
+      margin-top: 1rem;
+      margin-bottom: 1rem;
     }
 
     .container-vertical {
@@ -112,14 +120,15 @@
       gap: 1rem;
     }
     
-
-    .container-quintil {
+    .container-horizontal {
       display: grid;
+      width: 100%;
       flex-direction: column;
       justify-content: center;
       align-items: center;
-      gap: 1rem;
+      gap: 0.1rem;
     }
+
 
 
     p {
@@ -155,6 +164,7 @@
   <header>
     <h2>Model Results: {{ title }}</h2>
   </header>
+  
   <button id="scrollToTopBtn"
     style="display: none; position: fixed; bottom: 20px; right: 20px; z-index: 99; font-size: 18px; border: none; outline: none; background-color: var(--primary-color); color: white; cursor: pointer; padding: 15px; border-radius: 4px;">Top</button>
   <script>
@@ -173,6 +183,87 @@
       document.documentElement.scrollTop = 0;
     });
   </script>
+<script>
+document.addEventListener('DOMContentLoaded', function(){
+  const script = document.currentScript;
+  const container = script ? script.parentElement : document;
+  const tables = container.querySelectorAll('table.dataframe');
+
+  function parseNumberCell(text) {
+    if (!text) return NaN;
+    let s = text.trim().replace('%', '').replace(/\./g, '').replace(',', '.');
+    s = s.replace(/[^\d\.\-]/g, '');
+    return parseFloat(s);
+  }
+
+  function lerp(a, b, t) { return a + (b - a) * t; }
+
+  // interpolate between red (#ffd6d6 = 255,214,214) and green (#d4f8d4 = 212,248,212)
+  function colorForNormalized(t) {
+    const r = Math.round(lerp(255, 212, t));
+    const g = Math.round(lerp(214, 248, t));
+    const b = Math.round(lerp(214, 212, t));
+    return `rgb(${r}, ${g}, ${b})`;
+  }
+
+  tables.forEach(table => {
+
+    // tables you want to skip completely  
+    if (table.classList.contains('no-color')) return;
+
+    const tbody = table.tBodies[0];
+    if (!tbody) return;
+    const rows = Array.from(tbody.rows);
+    if (rows.length === 0) return;
+
+    let globalMin = Infinity;
+    let globalMax = -Infinity;
+
+    const tableData = rows.map(row => {
+      const cells = Array.from(row.cells).slice(1); // skip first col
+      const parsed = cells.map(cell => {
+        const num = parseNumberCell(cell.textContent || cell.innerText);
+        return { cell, num, isNum: !isNaN(num) };
+      });
+
+      const nums = parsed.filter(p => p.isNum).map(p => p.num);
+      if (nums.length > 0) {
+        globalMin = Math.min(globalMin, Math.min(...nums));
+        globalMax = Math.max(globalMax, Math.max(...nums));
+      }
+
+      return { parsed };
+    });
+
+    if (!isFinite(globalMin) || !isFinite(globalMax)) return;
+
+    const isInverted = table.classList.contains('invert-color');
+
+    tableData.forEach(({ parsed }) => {
+      const nums = parsed.filter(p => p.isNum).map(p => p.num);
+      if (nums.length === 0) return;
+
+      const rowMax = Math.max(...nums);
+
+      parsed.forEach(p => {
+        if (!p.isNum) return;
+
+        const tRaw = (globalMax === globalMin)
+          ? 0.5
+          : (p.num - globalMin) / (globalMax - globalMin);
+
+        const t = isInverted ? (1 - tRaw) : tRaw;
+
+        p.cell.style.backgroundColor = colorForNormalized(t);
+        p.cell.style.fontWeight = (p.num === rowMax) ? '700' : '400';
+      });
+    });
+
+  }); // <-- closes tables.forEach
+
+}); // <-- closes DOMContentLoaded handler
+</script>
+
   <main>
     <section>
 
@@ -270,11 +361,27 @@
 
       Segmented
 
-      <div class="container">
-        <div class=".container-vertical">
+      <div class="container-no-display">
+          <div class="container-horizontal no-color">
 
-            Tabela de gini segmented
-        </div>
+            <h4>Volume</h4>
+              {{ tbl_vol_seg | safe }}
+          </div>
+
+          <div class="container-horizontal">
+            <h4>Gini Observed + Inferred</h4>
+              {{ tbl_gini_obs_inf_seg | safe }}
+          </div>
+
+          <div class="container-horizontal">
+            <h4>Gini Observed</h4>
+              {{ tbl_gini_obs_seg | safe }}
+          </div>
+
+          <div class="container-horizontal">
+            <h4>Gini No Action</h4>
+              {{ tbl_gini_no_action_seg | safe }}
+          </div>
       </div>
 
       <h2>Over - Matrix Decils</h2>
@@ -284,14 +391,14 @@
 
         <div class=".container-vertical">
         <h4> Observed + Inferred </h4>
-            Matrix cruzada decils target vs model observed + inferred
+              {{ tbl_vol_class_tgt | safe }}
         </div>
 
 
         <div class=".container-vertical">
 
         <h4> No Action </h4>
-            Matrix cruzada decils target vs model no action
+              {{ tbl_vol_no_action_class_tgt | safe }}
         </div>
 
         
@@ -301,14 +408,14 @@
 
         <div class=".container-vertical">
         <h4> Observed + Inferred </h4>
-            Matrix cruzada decils target vs model observed + inferred
+              {{ tbl_mean_class_tgt | safe }}
         </div>
 
 
         <div class=".container-vertical">
 
-        <h4> No Action </h4>
-            Matrix cruzada decils target vs model no action
+          <h4> No Action </h4>
+              {{ tbl_mean_no_action_class_tgt | safe }}
         </div>
 
         
